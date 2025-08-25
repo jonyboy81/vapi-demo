@@ -32,10 +32,11 @@ export default async (req: Request) => {
   const VAPI_API_KEY = process.env.VAPI_API_KEY;
   const VAPI_ASSISTANT_ID = process.env.VAPI_ASSISTANT_ID;
   const SERVER_URL = process.env.SERVER_URL; // e.g. https://vapi-demo.vercel.app
-
-  if (!VAPI_API_KEY || !VAPI_ASSISTANT_ID || !SERVER_URL) {
-    return new Response(JSON.stringify({ error: "Missing env vars" }), { status: 500 });
-  }
+  const VAPI_PHONE_NUMBER_ID = process.env.VAPI_PHONE_NUMBER_ID;
+  
+  if (!VAPI_API_KEY || !VAPI_ASSISTANT_ID || !SERVER_URL || !VAPI_PHONE_NUMBER_ID) {
+  return new Response(JSON.stringify({ error: "Missing env vars" }), { status: 500 });
+}
 
   const payload = await req.json().catch(() => ({} as any));
 
@@ -60,7 +61,7 @@ export default async (req: Request) => {
     return new Response(JSON.stringify({ error: "Invalid phone format", normalized: number }), { status: 400 });
   }
 
-  const vapiRes = await fetch("https://api.vapi.ai/calls", {
+  const vapiRes = await fetch("https://api.vapi.ai/call", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -68,6 +69,7 @@ export default async (req: Request) => {
     },
     body: JSON.stringify({
       assistantId: VAPI_ASSISTANT_ID,
+      phoneNumberId: VAPI_PHONE_NUMBER_ID,
       type: "phone",
       customer: { number },
       serverUrl: `${SERVER_URL}/api/vapi-events`,
