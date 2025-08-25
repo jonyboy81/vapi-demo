@@ -67,20 +67,19 @@ export default async (req: Request) => {
       "Content-Type": "application/json",
       Authorization: `Bearer ${VAPI_API_KEY}`,
     },
-    body: JSON.stringify({
-      type: "outboundPhoneCall", 
-      assistantId: d6ad15d5-b0f7-4460-9a29-24e43546a01e ,
-      phoneNumberId: ef1cf326-3a73-4e2b-be3f-bd10e74ba0a1 ,
-      type: "phone",
-      customer: { +447428137872 },
-      metadata: {
-        lead: { name, email, number, source: "duda-form" },
-        consentPurpose: "demo-call",
-        submittedAt: new Date().toISOString(),
-      },
-      maxDurationSeconds: 180,
-    }),
-  });
+
+body: JSON.stringify({
+  type: "outboundPhoneCall",
+  assistantId: VAPI_ASSISTANT_ID,        
+  phoneNumberId: VAPI_PHONE_NUMBER_ID,   
+  customer: { number },                 
+  metadata: {
+    lead: { name, email, number, source: "duda-form" },
+    consentPurpose: "demo-call",
+    submittedAt: new Date().toISOString(),
+  },
+  maxDurationSeconds: 180
+}),
 
   if (!vapiRes.ok) {
     const err = await vapiRes.text().catch(() => "");
