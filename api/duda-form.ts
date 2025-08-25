@@ -68,18 +68,17 @@ export default async (req: Request) => {
       Authorization: `Bearer ${VAPI_API_KEY}`,
     },
     body: JSON.stringify({
-      assistantId: VAPI_ASSISTANT_ID,
-      phoneNumberId: VAPI_PHONE_NUMBER_ID,
+      type: "outboundPhoneCall", 
+      assistantId: d6ad15d5-b0f7-4460-9a29-24e43546a01e ,
+      phoneNumberId: ef1cf326-3a73-4e2b-be3f-bd10e74ba0a1 ,
       type: "phone",
-      customer: { number },
-      serverUrl: `${SERVER_URL}/api/vapi-events`,
+      customer: { +447428137872 },
       metadata: {
         lead: { name, email, number, source: "duda-form" },
         consentPurpose: "demo-call",
         submittedAt: new Date().toISOString(),
       },
       maxDurationSeconds: 180,
-      voicemailDetection: true,
     }),
   });
 
