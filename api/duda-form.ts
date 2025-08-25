@@ -43,18 +43,28 @@ export default async (req: Request) => {
   // Parse the form payload
   const payload = await req.json().catch(() => ({} as any));
 
-  const name =
-  extractField(payload, "name", "full name", "your name", "Name")?.toString().trim() || "";
-  const phoneRaw =
-  extractField(payload, "phone", "mobile", "telephone", "phone number", "Phone", "Mobile Number")?.toString().trim() || "";
-  const email =
-  extractField(payload, "email", "e-mail", "Email", "Email Address")?.toString().trim() || "";
-  const consentVal =
-  extractField(payload, "consent", "opt-in", "agree", "Consent", "I agree", "I consent");
-  const consent = typeof consentVal === "boolean"
-    ? consentVal
-    : ["yes","y","1","on","checked","true","agree"].includes(
-        String(consentVal ?? "").toLowerCase()
+  // Name
+const name =
+  payload.Name ||
+  extractField(payload, "name", "full name", "your name") ||
+  "";
+
+// Phone
+const phoneRaw =
+  payload.Phone ||
+  extractField(payload, "phone", "mobile", "telephone", "phone number") ||
+  "";
+
+// Email (optional — Duda didn’t send one yet)
+const email =
+  payload.Email ||
+  extractField(payload, "email", "e-mail") ||
+  "";
+
+// Consent (optional for now)
+const consentVal =
+  payload.Consent ||
+  extractField(payload, "consent", "opt-in", "agree");
       );
 
   if (!name) return new Response(JSON.stringify({ error: "Missing name" }), { status: 400 });
