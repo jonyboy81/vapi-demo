@@ -5,6 +5,7 @@ export const config = { runtime: "edge" };
 function extractField(obj: any, ...names: string[]) {
   for (const n of names) if (obj?.[n] != null) return obj[n];
   if (obj?.fields) for (const n of names) if (obj.fields[n] != null) return obj.fields[n];
+
   const arr = obj?.data?.fields || obj?.fieldsArray || obj?.data;
   if (Array.isArray(arr)) {
     const lower = names.map((n) => n.toLowerCase());
@@ -31,7 +32,7 @@ function toE164UK(phone: string) {
 export default async (req: Request) => {
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
 
-  // ✅ Pull secrets from Vercel env vars
+  // Secrets from Vercel env vars
   const VAPI_API_KEY = process.env.VAPI_API_KEY as string;
   const VAPI_ASSISTANT_ID = process.env.VAPI_ASSISTANT_ID as string;
   const VAPI_PHONE_NUMBER_ID = process.env.VAPI_PHONE_NUMBER_ID as string;
@@ -42,41 +43,60 @@ export default async (req: Request) => {
 
   // Parse the form payload
   const payload = await req.json().catch(() => ({} as any));
+  // console.log("Duda payload =>", JSON.stringify(payload, null, 2));
 
-  // Name
-const name =
-  payload.Name ||
-  extractField(payload, "name", "full name", "your name") ||
-  "";
+  // ---- Read fields (supports your Duda keys and common variants) ----
+  const name =
+    (payload.Name ?? payload["Full Name"]) ??
+    extractField(payload, "name", "full name", "your name") ??
+    "";
 
-// Phone
-const phoneRaw =
-  payload.Phone ||
-  extractField(payload, "phone", "mobile", "telephone", "phone number") ||
-  "";
+  const phoneRaw =
+    (payload.Phone ?? payload["Mobile"] ?? payload["Mobile Number"]) ??
+    extractField(payload, "phone", "mobile", "telephone", "phone number", "mobile number") ??
+    "";
 
-// Email (optional — Duda didn’t send one yet)
-const email =
-  payload.Email ||
-  extractField(payload, "email", "e-mail") ||
-  "";
+  const email =
+    (payload.Email ?? payload["Email Address"]) ??
+    extractField(payload, "email", "e-mail", "email address") ??
+    "";
 
-// Consent (optional for now)
-const consentVal =
-  payload.Consent ||
-  extractField(payload, "consent", "opt-in", "agree");
-      );
+  // Consent (optional while testing)
+  const consentVal =
+    (payload.Consent ?? payload["I agree"] ?? payload["I consent"]) ??
+    extractField(payload, "consent", "opt-in", "agree", "i agree", "i consent");
 
-  if (!name) return new Response(JSON.stringify({ error: "Missing name" }), { status: 400 });
-  if (!phoneRaw) return new Response(JSON.stringify({ error: "Missing phone" }), { status: 400 });
-  if (!consent) return new Response(JSON.stringify({ error: "Consent required" }), { status: 400 });
+  const consent =
+    consentVal == null
+      ? true // TEMP: allow during testing; switch to false and enforce below for production
+      : (typeof consentVal === "boolean"
+          ? consentVal
+          : ["yes", "y", "1", "on", "checked", "true", "agree"].includes(
+              String(consentVal).toLowerCase()
+            ));
 
+  // ---- Basic validations ----
+  if (!String(name).trim()) {
+    return new Response(JSON.stringify({ error: "Missing name" }), { status: 400 });
+  }
+  if (!String(phoneRaw).trim()) {
+    return new Response(JSON.stringify({ error: "Missing phone" }), { status: 400 });
+  }
+  // To require consent now, uncomment the block below:
+  // if (!consent) {
+  //   return new Response(JSON.stringify({ error: "Consent required" }), { status: 400 });
+  // }
+
+  // Normalize and validate phone
   const number = toE164UK(phoneRaw);
   if (!/^\+\d{8,15}$/.test(number)) {
-    return new Response(JSON.stringify({ error: "Invalid phone format", normalized: number }), { status: 400 });
+    return new Response(
+      JSON.stringify({ error: "Invalid phone format", normalized: number }),
+      { status: 400 }
+    );
   }
 
-  // ✅ Call Vapi /call API
+  // ---- Call Vapi /call API ----
   const vapiRes = await fetch("https://api.vapi.ai/call", {
     method: "POST",
     headers: {
@@ -87,7 +107,7 @@ const consentVal =
       type: "outboundPhoneCall",
       assistantId: VAPI_ASSISTANT_ID,
       phoneNumberId: VAPI_PHONE_NUMBER_ID,
-      customer: { number }, // the normalized phone number
+      customer: { number }, // use the normalized variable
       metadata: {
         lead: { name, email, number, source: "duda-form" },
         consentPurpose: "demo-call",
@@ -99,7 +119,10 @@ const consentVal =
 
   if (!vapiRes.ok) {
     const err = await vapiRes.text().catch(() => "");
-    return new Response(JSON.stringify({ error: "Vapi call failed", details: err }), { status: 502 });
+    return new Response(
+      JSON.stringify({ error: "Vapi call failed", details: err }),
+      { status: 502 }
+    );
   }
 
   const data = await vapiRes.json();
