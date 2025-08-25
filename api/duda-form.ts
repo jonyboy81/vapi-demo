@@ -44,12 +44,13 @@ export default async (req: Request) => {
   const payload = await req.json().catch(() => ({} as any));
 
   const name =
-    extractField(payload, "name", "full name", "your name")?.toString().trim() || "";
+  extractField(payload, "name", "full name", "your name", "Name")?.toString().trim() || "";
   const phoneRaw =
-    extractField(payload, "phone", "mobile", "telephone", "phone number")?.toString().trim() || "";
+  extractField(payload, "phone", "mobile", "telephone", "phone number", "Phone", "Mobile Number")?.toString().trim() || "";
   const email =
-    extractField(payload, "email", "e-mail")?.toString().trim() || "";
-  const consentVal = extractField(payload, "consent", "opt-in", "agree");
+  extractField(payload, "email", "e-mail", "Email", "Email Address")?.toString().trim() || "";
+  const consentVal =
+  extractField(payload, "consent", "opt-in", "agree", "Consent", "I agree", "I consent");
   const consent = typeof consentVal === "boolean"
     ? consentVal
     : ["yes","y","1","on","checked","true","agree"].includes(
